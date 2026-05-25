@@ -1,0 +1,72 @@
+[
+  {
+    "query": "¿Cuánto cuesta ESTRUCTURA?",
+    "expected_section_contains": "Costos",
+    "should_answer": true
+  },
+  {
+    "query": "¿Cuánto cuesta DESCUBRE?",
+    "expected_section_contains": "Costos",
+    "should_answer": true
+  },
+  {
+    "query": "¿Qué es Latinoamérica Comparte?",
+    "expected_section_contains": "Identidad",
+    "should_answer": true
+  },
+  {
+    "query": "¿Qué es EDIFICA?",
+    "expected_section_contains": "EDIFICA",
+    "should_answer": true
+  },
+  {
+    "query": "¿Qué es edifica?",
+    "expected_section_contains": "EDIFICA",
+    "should_answer": true
+  },
+  {
+    "query": "¿Qué es Comparte Academia?",
+    "expected_section_contains": "Comparte Academia",
+    "should_answer": true
+  },
+  {
+    "query": "¿Recibo capital semilla?",
+    "expected_section_contains": "Costos",
+    "should_answer": true
+  },
+  {
+    "query": "¿Cómo puedo donar?",
+    "expected_section_contains": "Donaciones",
+    "should_answer": true
+  },
+  {
+    "query": "¿Tengo que creer en Dios para participar?",
+    "expected_section_contains": "Espiritualidad",
+    "should_answer": true
+  },
+  {
+    "query": "¿Quién es un sarambabiche?",
+    "expected_section_contains": null,
+    "should_answer": false
+  },
+  {
+    "query": "sarambabiche",
+    "expected_section_contains": null,
+    "should_answer": false
+  },
+  {
+    "query": "¿Cuál es el nombre del perro del fundador?",
+    "expected_section_contains": null,
+    "should_answer": false
+  },
+  {
+    "query": "¿Qué significa emprendimiento sostenible en Marte?",
+    "expected_section_contains": null,
+    "should_answer": false
+  },
+  {
+    "query": "¿Cuánto cuesta el programa NASA?",
+    "expected_section_contains": null,
+    "should_answer": false
+  }
+]

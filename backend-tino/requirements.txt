@@ -1,0 +1,13 @@
+sentence-transformers
+faiss-cpu
+numpy
+pandas
+tqdm
+transformers>=4.45.0
+torch
+accelerate
+pyspellchecker
+pytest
+flask
+flask-cors
+deep-translator>=1.11.4

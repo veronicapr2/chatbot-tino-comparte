@@ -1,0 +1,10 @@
+{
+  "built_at": "2026-05-23T22:07:50.285146+00:00",
+  "embedding_model": "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2",
+  "chunk_count": 177,
+  "embedding_dim": 384,
+  "index_vectors": 177,
+  "chunks_review": 0,
+  "min_words": 35,
+  "max_words": 240
+}

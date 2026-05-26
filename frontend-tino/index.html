@@ -200,7 +200,6 @@
      </button>
     </div>
     <div class="hero-right modern-hero-right">
-     <img alt="Comunidad Latinoamérica Comparte" class="modern-people-img" src="/img/personas-latam.png"/>
      <img alt="Mapa Latinoamérica" class="landing-map modern-map" src="/img/landing-map.png"/>
     </div>
    </section>
@@ -641,7 +640,8 @@
       Chatea con
      </span>
      <strong id="welcome-title-line-two">
-      Tino
+      Tinogit commit --allow-empty -m "Actualiza frontend de Tino"
+git push origin main
      </strong>
     </h1>
     <p class="welcome-text-new" id="welcome-text">
@@ -1202,6 +1202,24 @@
      <button class="clear-history-btn" id="clear-history-btn" onclick="borrarTodoElHistorial()" type="button">
       Eliminar todo el historial
      </button>
+     <div aria-hidden="true" aria-modal="true" class="history-confirm-modal hidden" id="history-confirm-modal" role="dialog">
+      <div class="history-confirm-card">
+       <div class="history-confirm-icon">
+        🗑
+       </div>
+       <h3 id="history-confirm-title">
+        ¿Seguro que quieres eliminar todo el historial de conversaciones?
+       </h3>
+       <div class="history-confirm-actions">
+        <button class="history-cancel-btn" id="history-cancel-delete-btn" onclick="cerrarModalBorradoHistorial()" type="button">
+         Cancelar
+        </button>
+        <button class="history-delete-btn" id="history-confirm-delete-btn" onclick="confirmarBorradoHistorial()" type="button">
+         Eliminar
+        </button>
+       </div>
+      </div>
+     </div>
     </div>
    </div>
    <!-- ===================================== -->

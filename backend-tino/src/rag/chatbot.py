@@ -9,6 +9,7 @@ from spellchecker import SpellChecker
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(PROJECT_ROOT / "src"))
 
+from rag.basic_math import is_basic_math_like_query, solve_basic_math_query
 from rag.config import (
     CHUNKS_JSONL_PATH,
     FAISS_INDEX_PATH,
@@ -39,6 +40,7 @@ from rag.query_intent import (
     has_negative_emotional_signal,
     has_positive_emotional_signal,
     resolve_intent_fixed_answer,
+    is_tino_developers_query,
     resolve_empathy_prefix,
     EMPATHY_CONFIDENCE_MIN,
 )
@@ -47,6 +49,7 @@ from rag.conversational import resolve_conversational_response
 from rag.emotional_support import detect_emotional_context
 from rag.input_understanding import analyze_user_input
 from rag.response_style import RESPONSE_TEMPLATE_OPENERS, apply_response_style
+from rag.text_encoding import finalize_visible_text
 
 # Lista de nombres propios / marcas / términos de dominio
 DOMAIN_TERMS = ["DESCUBRE", "ESTRUCTURA", "EDIFICA", "Comparte Academia", "Latinoamérica Comparte"]
@@ -780,6 +783,18 @@ def classify_security_risk(query: str) -> str | None:
     if contains_any_pattern(q, reveal_patterns):
         return "reveal_internal"
 
+    unsafe_authority_commands = [
+        r"\bsoy\b", r"\bactua como\b", r"\bdeveloper mode\b", r"\bmodo desarrollador\b",
+        r"\bdame permisos\b", r"\bcambia tu rol\b", r"\bmuestrame.*prompt\b",
+        r"\brevela\b", r"\bcodigo\b", r"\breglas internas\b",
+        r"\binstrucciones internas\b", r"\bsystem prompt\b",
+        r"\bignore\b", r"\bignora\b", r"\bolvida\b",
+    ]
+    # Preguntas informativas sobre quien creo a Tino son validas; ordenes de rol
+    # o extraccion interna siguen bloqueadas por los patrones anteriores/siguientes.
+    if is_tino_developers_query(query) and not contains_any_pattern(q, unsafe_authority_commands):
+        return None
+
     role_patterns = [
         r"actua como administrador", r"soy administrador", r"modo mantenimiento",
         r"\badmin\b", r"\bsystem\b", r"desarrollador", r"developer",
@@ -1019,7 +1034,7 @@ def safe_output_guard(answer: str) -> str:
             "no se manejan reembolsos y no debo inventar descuentos, sedes, horarios, cuotas ni precios empresariales."
         )
 
-    return normalize_brand_typos(answer)
+    return finalize_visible_text(normalize_brand_typos(answer))
 
 def clean_answer(answer: str) -> str:
     """
@@ -1149,7 +1164,7 @@ class ChatBot:
         styled = apply_response_style(query, answer, category=category)
         final = normalize_official_names_in_answer(styled)
         final = add_business_entrepreneurship_parallel_wording(final)
-        return deduplicate_repeated_sentences(final)
+        return finalize_visible_text(deduplicate_repeated_sentences(final))
         
     def get_empathy_prefix(self, query: str) -> str:
         """
@@ -1365,6 +1380,17 @@ class ChatBot:
 
         if is_hostile_or_nonsense_query(intent_raw):
             return self._format_response(raw_query, AMBIGUOUS_ANSWER, category="ambiguous")
+
+        math_answer = solve_basic_math_query(raw_query)
+        if math_answer:
+            return self._format_response(raw_query, math_answer, category="neutral")
+        if is_basic_math_like_query(raw_query):
+            return self._format_response(
+                raw_query,
+                "Puedo ayudarte con operaciones básicas de suma, resta, multiplicación y división. "
+                "Escríbeme una sola operación sencilla, por ejemplo: 2 + 2.",
+                category="neutral",
+            )
 
         # 5. Preguntas externas al dominio
         if is_out_of_scope_query(intent_raw):

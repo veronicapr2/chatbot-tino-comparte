@@ -775,6 +775,36 @@ def fixed_values_principles_answer() -> str:
     )
 
 
+def is_tino_developers_query(query: str) -> bool:
+    n = normalize_common_typos(normalize_text(query))
+    has_chatbot = any(t in n for t in ("tino", "chatbot", "bot", "asistente", "este proyecto"))
+    has_chatbot = has_chatbot or bool(re.search(r"\b(te|tus?|a ti)\b", n))
+    has_builder = any(
+        re.search(pattern, n)
+        for pattern in (
+            r"\bdesarroll\w*\b",
+            r"\bprogram\w*\b",
+            r"\bcreador\w*\b",
+            r"\bcreadores\b",
+            r"\bconstru\w*\b",
+            r"\bequipo\b",
+            r"\bdetras\b",
+            r"\bhizo\b",
+            r"\bhicieron\b",
+            r"\bcreo\b",
+            r"\bcrearon\b",
+        )
+    )
+    return has_chatbot and has_builder
+
+
+def fixed_tino_developers_answer() -> str:
+    return (
+        "Fui desarrollado por el Team 404, el equipo encargado de crear y programar este "
+        "chatbot para apoyar la experiencia de Latinoamerica Comparte."
+    )
+
+
 def is_founders_query(query: str) -> bool:
     n = build_intent_query(query)
     if any(t in n for t in ("perro", "mascota", "hijo", "hija", "familia", "direccion", "telefono", "nombre del")):
@@ -926,6 +956,8 @@ def resolve_intent_fixed_answer(query: str) -> str | None:
         return fixed_mission_answer()
     if is_values_principles_query(query):
         return fixed_values_principles_answer()
+    if is_tino_developers_query(query):
+        return fixed_tino_developers_answer()
     if is_known_person_query(query):
         return fixed_known_person_answer(query)
     if is_founders_query(query):

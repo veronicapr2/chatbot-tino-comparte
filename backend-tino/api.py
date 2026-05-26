@@ -12,6 +12,7 @@ if str(SRC_DIR) not in sys.path:
     sys.path.insert(0, str(SRC_DIR))
 
 from rag.chatbot import ChatBot
+from rag.text_encoding import finalize_visible_text, repair_mojibake
 from translation_service import (
     TranslationError,
     normalize_language,
@@ -25,6 +26,8 @@ from translation_service import (
 
 
 app = Flask(__name__)
+app.config["JSON_AS_ASCII"] = False
+app.json.ensure_ascii = False
 CORS(app)
 
 FRONTEND_DIR = PROJECT_ROOT.parent / "frontend-tino"
@@ -134,10 +137,11 @@ def chat():
 
             return jsonify(response_data), 502
 
-        raw_spanish_answer = bot.ask(spanish_message)
+        raw_spanish_answer = finalize_visible_text(bot.ask(spanish_message))
 
         try:
             final_answer = translate_from_spanish(raw_spanish_answer, language)
+            final_answer = repair_mojibake(final_answer)
         except TranslationError as e:
             print("ERROR TRADUCIENDO SALIDA:", repr(e))
             fallback = translation_output_error_message(language)

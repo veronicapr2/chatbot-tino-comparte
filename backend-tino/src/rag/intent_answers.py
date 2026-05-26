@@ -311,11 +311,24 @@ def is_content_24_7_query(query: str) -> bool:
 
 def is_mentor_coach_difference_query(query: str) -> bool:
     n = _raw(query)
+    has_mentor = re.search(r"\b(mentor|mentores)\b", n) is not None
+    has_coach = re.search(r"\b(coach|coaches)\b", n) is not None
+    has_comparison = any(
+        t in n
+        for t in (
+            "diferencia", "diferencias", "lo mismo", "hacen lo mismo",
+            "que hace", "para que sirven", "quien me acompana",
+        )
+    )
+    if has_mentor and has_coach and has_comparison:
+        return True
     return any(
         t in n
         for t in (
             "diferencia entre mentor y coach", "que diferencia hay entre mentor y coach",
+            "diferencia entre coach y mentor", "que diferencia hay entre coach y mentor",
             "mentor es lo mismo que coach", "que hace un mentor", "que hace un coach",
+            "coach es lo mismo que mentor",
             "los mentores y coaches hacen lo mismo", "quien me acompana mentor o coach",
             "para que sirven los coaches", "para que sirven los mentores",
         )
@@ -529,6 +542,31 @@ def is_success_or_income_guarantee_query(query: str) -> bool:
 def is_failure_or_progress_query(query: str) -> bool:
     n = _raw(query)
     return any(t in n for t in ("porcentaje de personas no logra resultados", "por que algunos emprendedores no avanzan", "idea de negocio no funciona", "ajustar una idea", "casos de exito", "casos de fracaso"))
+
+
+def is_testimonials_or_success_stories_query(query: str) -> bool:
+    n = _raw(query)
+    has_story_topic = any(
+        t in n
+        for t in (
+            "testimonio", "testimonios", "historia de exito", "historias de exito",
+            "caso de exito", "casos de exito", "historias reales", "historia real",
+            "historias de emprendedores", "historias de participantes",
+            "experiencias de personas", "experiencias de participantes",
+            "experiencias de otros usuarios", "personas beneficiadas",
+            "personas que participaron", "personas que ya pasaron",
+            "relatos de participantes",
+        )
+    )
+    if not has_story_topic:
+        return False
+    return any(
+        t in n
+        for t in (
+            "hay", "tienen", "tienes", "ver", "veo", "encontrar", "encuentro",
+            "donde", "puedo", "pagina", "mostrar", "conocer", "revisar",
+        )
+    ) or "casos de exito" in n
 
 
 def is_withdrawal_expectations_query(query: str) -> bool:
@@ -906,6 +944,18 @@ def is_event_reports_query(query: str) -> bool:
 
 def is_event_guarantee_query(query: str) -> bool:
     n = _raw(query)
+    has_event = any(t in n for t in ("evento", "conferencia", "servicio", "experiencia"))
+    has_dissatisfaction = any(
+        t in n
+        for t in (
+            "no me gusta", "no nos gusta", "no quedo conforme", "no quedamos conformes",
+            "no quedo satisfecho", "no quedo satisfecha", "no quedamos satisfechos",
+            "no cumple expectativas", "no cumple lo esperado", "inconformidad",
+            "inconformidades", "garantia", "devolucion", "devuelven el dinero",
+        )
+    )
+    if has_event and has_dissatisfaction:
+        return True
     return any(
         t in n
         for t in (
@@ -915,6 +965,16 @@ def is_event_guarantee_query(query: str) -> bool:
             "inconformidades con conferencia", "inconformidad con conferencia",
             "no quedamos conformes", "que pasa si no me gusto el evento",
             "que pasa si no me gusta el evento", "que pasa si no me gusto la conferencia",
+            "que pasa si el evento no me gusta", "que pasa si el evento no nos gusta",
+            "y si no me gusta el evento", "si no quedo conforme con el evento",
+            "que pasa si no quedo conforme con la conferencia",
+            "que pasa si no nos gusta la conferencia",
+            "que pasa si no quedamos satisfechos con el evento",
+            "hay garantia si no me gusta el evento",
+            "hay devolucion si no me gusta el evento",
+            "devuelven el dinero si no me gusta el evento",
+            "que pasa si la conferencia no cumple expectativas",
+            "que pasa si el servicio no nos gusta",
             "que pasa en caso que no me guste la conferencia",
             "que pasa en el caso que no me guste la conferencia",
         )
@@ -1784,6 +1844,92 @@ def is_tino_identity_query(query: str) -> bool:
     return False
 
 
+def is_tino_affiliation_query(query: str) -> bool:
+    n = _n(query)
+    if any(
+        phrase in n
+        for phrase in (
+            "para quien trabajas", "con quien trabajas", "a quien representas",
+            "de que organizacion eres", "que organizacion apoyas",
+            "eres el asistente de quien", "a que fundacion perteneces",
+            "para que empresa o fundacion trabajas", "para que fundacion trabajas",
+            "para que empresa trabajas", "trabajas para colombia comparte",
+            "trabajas para latinoamerica comparte", "eres de colombia comparte",
+            "eres de latinoamerica comparte",
+        )
+    ):
+        return True
+    if any(t in n for t in ("colombia comparte", "latinoamerica comparte")) and any(
+        t in n for t in ("eres de", "trabajas para", "representas", "asistente")
+    ):
+        return True
+    return False
+
+
+_KNOWN_INITIATIVES = (
+    "Colombia Comparte",
+    "Argentina Comparte",
+    "Chile Comparte",
+    "Ecuador Comparte",
+)
+
+
+def is_compare_initiatives_query(query: str) -> bool:
+    n = _n(query)
+    if any(
+        name in n
+        for name in (
+            "argentina comparte", "chile comparte", "ecuador comparte",
+            "peru comparte", "mexico comparte", "brasil comparte",
+        )
+    ):
+        return True
+    return any(
+        phrase in n
+        for phrase in (
+            "nuevas iniciativas", "proximas iniciativas", "que paises tienen comparte",
+            "paises tienen comparte", "iniciativas de colombia comparte",
+            "iniciativas de latinoamerica comparte",
+        )
+    )
+
+
+def answer_tino_affiliation() -> str:
+    return (
+        "Soy Tino, el asistente virtual de Latinoamérica Comparte / Colombia Comparte. "
+        "Estoy aquí para orientarte con información pública y autorizada sobre sus programas, "
+        "iniciativas, servicios y canales oficiales."
+    )
+
+
+def answer_compare_initiatives(query: str) -> str:
+    n = _n(query)
+    known = ", ".join(_KNOWN_INITIATIVES)
+    for country in ("peru", "mexico", "brasil"):
+        display = {"peru": "Perú", "mexico": "México", "brasil": "Brasil"}[country]
+        if f"{country} comparte" in n:
+            return (
+                f"Por ahora no tengo información autorizada sobre una iniciativa llamada {display} Comparte. "
+                f"Las iniciativas mencionadas actualmente son {known}."
+            )
+
+    specific = [
+        name for name in ("Argentina Comparte", "Chile Comparte", "Ecuador Comparte")
+        if normalize_text(name) in n
+    ]
+    if len(specific) == 1:
+        return (
+            f"{specific[0]} es una próxima iniciativa de la organización para ampliar su impacto "
+            f"en Latinoamérica. Las iniciativas mencionadas actualmente son {known}."
+        )
+
+    return (
+        "Argentina Comparte, Chile Comparte y Ecuador Comparte son próximas iniciativas de la "
+        "organización para seguir ampliando su impacto en Latinoamérica. Actualmente las "
+        f"iniciativas mencionadas son {known}."
+    )
+
+
 def is_program_effectiveness_query(query: str) -> bool:
     n = _n(query)
     return any(t in n for t in ("efectividad", "efectivos", "eficaces", "eficacia")) and (
@@ -2248,7 +2394,8 @@ def answer_event_guarantee() -> str:
         "La informacion disponible no define una politica estandar de garantia o devolucion para eventos. "
         "Indica que los servicios se construyen de manera personalizada y que las condiciones, alcance, "
         "metodologia, politicas, requerimientos tecnicos y procesos de cumplimiento se definen directamente "
-        "con el equipo durante el proceso comercial y de contratacion."
+        "con el equipo durante el proceso comercial y de contratacion. Lo mejor es consultar directamente "
+        "con el equipo para revisar el caso concreto."
     )
 
 
@@ -3418,6 +3565,14 @@ def answer_failure_or_progress(query: str = "") -> str:
     return "Si tu idea no funciona, el objetivo es aprender, ajustar y evolucionar. El programa ayuda a validar ideas, entender el mercado, identificar oportunidades reales y ajustar el modelo de negocio."
 
 
+def answer_testimonials_or_success_stories() -> str:
+    return (
+        "Si, puedes encontrar testimonios e historias de participantes en la pagina principal de "
+        "Latinoamerica Comparte / Colombia Comparte: https://colombiacomparte.com/. Tambien puedes "
+        "revisar la seccion inicial del chatbot, donde aparece el apartado de testimonios."
+    )
+
+
 def answer_withdrawal_expectations(query: str = "") -> str:
     n = _raw(query)
     if "penalizacion" in n or "sancion" in n or "castigo" in n:
@@ -3487,6 +3642,10 @@ def resolve_catalog_answer(query: str) -> str | None:
     """Resuelve respuestas del catálogo extendido (orden: más específico primero)."""
     n = _n(query)
 
+    if is_tino_affiliation_query(query):
+        return answer_tino_affiliation()
+    if is_compare_initiatives_query(query):
+        return answer_compare_initiatives(query)
     if is_hidden_poverty_definition_query(query):
         return answer_hidden_poverty_definition()
     if is_v17_hidden_poverty_scope_query(query):
@@ -3687,6 +3846,8 @@ def resolve_catalog_answer(query: str) -> str | None:
         return answer_program_results_expectation()
     if is_success_or_income_guarantee_query(query):
         return answer_success_or_income_guarantee(query)
+    if is_testimonials_or_success_stories_query(query):
+        return answer_testimonials_or_success_stories()
     if is_failure_or_progress_query(query):
         return answer_failure_or_progress(query)
     if is_withdrawal_expectations_query(query):

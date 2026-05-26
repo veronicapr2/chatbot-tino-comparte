@@ -15,6 +15,7 @@ from rag.query_intent import (
     is_comparte_academia_programs_query,
     is_descubre_definition_query,
     is_values_principles_query,
+    is_tino_developers_query,
     is_founders_query,
     resolve_intent_fixed_answer,
     normalize_brand_typos,
@@ -155,6 +156,31 @@ def test_founders_with_emotion():
     assert ans and "Carolina Ruiz" in ans
 
 
+def test_tino_developers_intent():
+    for q in (
+        "Quien te programo?",
+        "Quienes son tus desarrolladores?",
+        "Quien creo este chatbot?",
+    ):
+        assert is_tino_developers_query(q)
+        ans = get_fixed_qa_answer(q)
+        assert ans
+        assert "Team 404" in ans
+        assert "Carolina Ruiz" not in ans
+
+
+def test_testimonials_and_success_stories_intent():
+    for q in (
+        "Tienen testimonios?",
+        "Donde puedo ver casos de exito?",
+        "Hay historias de emprendedores?",
+    ):
+        ans = get_fixed_qa_answer(q)
+        assert ans
+        assert "https://colombiacomparte.com/" in ans
+        assert "testimonios" in ans
+
+
 if __name__ == "__main__":
     test_cuando_to_cuanto_on_duration()
     test_cuanto_unchanged()
@@ -175,4 +201,6 @@ if __name__ == "__main__":
     test_comparte_academia_programs_lists_both()
     test_descubre_definition_fixed()
     test_founders_with_emotion()
+    test_tino_developers_intent()
+    test_testimonials_and_success_stories_intent()
     print("OK")

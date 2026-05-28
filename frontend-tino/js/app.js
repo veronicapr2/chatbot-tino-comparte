@@ -960,7 +960,18 @@ function stopSpeaking() {
     resetearBotonLecturaActivo();
 }
 
-function speakBotMessage(texto, idioma = obtenerIdiomaActual(), button = null) {
+function obtenerVozSabina() {
+    if (!lecturaBotSoportada()) return null;
+
+    const voces = cargarVocesLecturaBot();
+
+    return voces.find(voz => {
+        const nombreVoz = `${voz.name || ""} ${voz.voiceURI || ""}`.toLowerCase();
+        return nombreVoz.includes("microsoft sabina");
+    }) || null;
+}
+
+function speakBotMessageSabina(texto, button = null) {
     if (!lecturaBotSoportada()) {
         console.warn("speechSynthesis no esta disponible en este navegador.");
         return;
@@ -970,31 +981,20 @@ function speakBotMessage(texto, idioma = obtenerIdiomaActual(), button = null) {
 
     if (!textoLectura) return;
 
-    if (
-        button &&
-        button === botonLecturaBotActivo &&
-        (window.speechSynthesis.speaking || window.speechSynthesis.pending)
-    ) {
-        stopSpeaking();
-        return;
-    }
+    stopSpeaking();
 
-    window.speechSynthesis.cancel();
-    resetearBotonLecturaActivo();
-
-    const config = obtenerConfigLecturaBot(idioma);
-    const voz = getPreferredVoice(idioma);
+    const vozSabina = obtenerVozSabina();
     const utterance = new SpeechSynthesisUtterance(textoLectura);
     const lecturaId = idLecturaBotActual + 1;
 
     idLecturaBotActual = lecturaId;
-    utterance.lang = voz?.lang || config.lang;
-    utterance.rate = config.rate || 0.93;
-    utterance.pitch = config.pitch || 1.08;
+    utterance.lang = "es-MX";
+    utterance.rate = 1.25;
+    utterance.pitch = 1.8;
     utterance.volume = 1;
 
-    if (voz) {
-        utterance.voice = voz;
+    if (vozSabina) {
+        utterance.voice = vozSabina;
     }
 
     if (button) {
@@ -1011,13 +1011,24 @@ function speakBotMessage(texto, idioma = obtenerIdiomaActual(), button = null) {
         }
     };
 
-    utterance.onerror = () => {
+    utterance.onerror = (eventoError) => {
+        console.error("Error reproduciendo mensaje con speechSynthesis", eventoError);
+
         if (lecturaId === idLecturaBotActual) {
             resetearBotonLecturaActivo();
         }
     };
 
-    window.speechSynthesis.speak(utterance);
+    try {
+        window.speechSynthesis.speak(utterance);
+    } catch (error) {
+        console.error("Error reproduciendo mensaje con speechSynthesis", error);
+        resetearBotonLecturaActivo();
+    }
+}
+
+function speakBotMessage(texto, idioma = obtenerIdiomaActual(), button = null) {
+    speakBotMessageSabina(texto, button);
 }
 
 function setText(id, texto) {const elemento = document.getElementById(id);
@@ -1478,21 +1489,35 @@ renderizarHistorial();
 
 }
 
+function restaurarMensajesEnChat(mensajes) {const chat = document.getElementById("chat");
+
+if (!chat) return;
+
+if (!Array.isArray(mensajes) || mensajes.length === 0) {
+    reiniciarChatVisual();
+    return;
+}
+
+const fragmento = document.createDocumentFragment();
+
+mensajes.forEach(mensaje => {
+    fragmento.appendChild(
+        crearElementoMensaje(mensaje.texto, mensaje.tipo, false)
+    );
+});
+
+chat.replaceChildren(fragmento);
+chat.scrollTop = chat.scrollHeight;
+
+}
+
 function cargarMensajesDeConversacion(idConversacion) {const historial = obtenerHistorial();const conversacion = historial.find(chat => chat.id === idConversacion);
 
 if (!conversacion) return;
 
 guardarConversacionActual(idConversacion);
 
-const chat = document.getElementById("chat");
-
-if (!chat) return;
-
-chat.innerHTML = "";
-
-conversacion.mensajes.forEach(mensaje => {
-    agregarMensaje(mensaje.texto, mensaje.tipo, false, false);
-});
+restaurarMensajesEnChat(conversacion.mensajes);
 
 mostrarChat();
 
@@ -1500,22 +1525,20 @@ mostrarChat();
 
 function restaurarUltimaConversacion() {const idActual = obtenerConversacionActual();
 
-if (!idActual) return;
+if (!idActual) {
+    reiniciarChatVisual();
+    return;
+}
 
 const historial = obtenerHistorial();
 const conversacion = historial.find(chat => chat.id === idActual);
 
-if (!conversacion || conversacion.mensajes.length === 0) return;
+if (!conversacion || conversacion.mensajes.length === 0) {
+    reiniciarChatVisual();
+    return;
+}
 
-const chat = document.getElementById("chat");
-
-if (!chat) return;
-
-chat.innerHTML = "";
-
-conversacion.mensajes.forEach(mensaje => {
-    agregarMensaje(mensaje.texto, mensaje.tipo, false, false);
-});
+restaurarMensajesEnChat(conversacion.mensajes);
 
 }
 
@@ -1600,18 +1623,195 @@ historialFiltrado.forEach(chat => {
 
 }
 
-function borrarTodoElHistorial() {const textos = obtenerTextos();
+function inicializarModalEliminacionHistorial() {
+    if (document.getElementById("modal-eliminar-historial")) return;
 
-const confirmar = confirm(textos.deleteConfirm);
+    const style = document.createElement("style");
+    style.id = "modal-eliminar-historial-styles";
+    style.textContent = `
+        .modal-eliminar-historial-backdrop {
+            position: fixed;
+            inset: 0;
+            background: rgba(8, 12, 24, 0.72);
+            backdrop-filter: blur(4px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+            z-index: 2147483647;
+        }
 
-if (!confirmar) return;
+        .modal-eliminar-historial {
+            width: min(420px, 100%);
+            position: relative;
+            z-index: 2147483647;
+            background: #0f172a;
+            color: #f8fafc;
+            border-radius: 20px;
+            padding: 20px 18px;
+            box-shadow: 0 24px 80px rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(148, 163, 184, 0.16);
+            outline: none;
+        }
 
-localStorage.removeItem(HISTORY_KEY);
-localStorage.removeItem(CURRENT_CHAT_KEY);
+        .modal-eliminar-historial-header h2 {
+            margin: 0;
+            font-size: 1.1rem;
+            font-weight: 700;
+        }
 
-renderizarHistorial();
-reiniciarChatVisual();
+        .modal-eliminar-historial-body {
+            margin-top: 10px;
+            color: rgba(248, 250, 252, 0.82);
+            line-height: 1.45;
+            font-size: 0.95rem;
+        }
 
+        .modal-eliminar-historial-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 16px;
+        }
+
+        .modal-eliminar-historial-btn {
+            border: 0;
+            border-radius: 999px;
+            padding: 10px 14px;
+            font-size: 0.92rem;
+            font-weight: 700;
+            cursor: pointer;
+            min-width: 92px;
+            transition: transform 0.18s ease, filter 0.18s ease, opacity 0.18s ease;
+        }
+
+        .modal-eliminar-historial-btn:hover,
+        .modal-eliminar-historial-btn:focus-visible {
+            transform: translateY(-1px);
+            filter: brightness(1.08);
+        }
+
+        .modal-eliminar-historial-btn.cancelar {
+            background: rgba(148, 163, 184, 0.18);
+            color: #f8fafc;
+        }
+
+        .modal-eliminar-historial-btn.eliminar {
+            background: linear-gradient(180deg, #ef4444, #b91c1c);
+            color: #fff;
+        }
+
+        @media (max-width: 600px) {
+            .modal-eliminar-historial {
+                border-radius: 18px;
+                padding: 18px 16px;
+            }
+
+            .modal-eliminar-historial-actions {
+                flex-direction: column-reverse;
+            }
+
+            .modal-eliminar-historial-btn {
+                width: 100%;
+            }
+        }
+    `;
+
+    document.head.appendChild(style);
+
+    const modal = document.createElement("div");
+    modal.id = "modal-eliminar-historial";
+    modal.className = "modal-eliminar-historial-backdrop";
+    modal.setAttribute("aria-hidden", "true");
+    modal.innerHTML = `
+        <div class="modal-eliminar-historial"
+             role="dialog"
+             aria-modal="true"
+             aria-labelledby="modal-eliminar-historial-title"
+             aria-describedby="modal-eliminar-historial-description"
+             tabindex="-1">
+            <div class="modal-eliminar-historial-header">
+                <h2 id="modal-eliminar-historial-title">Eliminar historial de chat</h2>
+            </div>
+
+            <div class="modal-eliminar-historial-body" id="modal-eliminar-historial-description">
+                Esta acción eliminará todas tus conversaciones con Tino y no se puede deshacer.
+            </div>
+
+            <div class="modal-eliminar-historial-actions">
+                <button type="button" class="modal-eliminar-historial-btn cancelar" id="modal-eliminar-historial-cancelar">Cancelar</button>
+                <button type="button" class="modal-eliminar-historial-btn eliminar" id="modal-eliminar-historial-confirmar">Eliminar</button>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    const dialog = modal.querySelector(".modal-eliminar-historial");
+    const botonCancelar = modal.querySelector("#modal-eliminar-historial-cancelar");
+    const botonEliminar = modal.querySelector("#modal-eliminar-historial-confirmar");
+
+    modal.addEventListener("click", (evento) => {
+        if (evento.target === modal) {
+            cerrarModalEliminacionHistorial();
+        }
+    });
+
+    botonCancelar.addEventListener("click", () => {
+        cerrarModalEliminacionHistorial();
+    });
+
+    botonEliminar.addEventListener("click", () => {
+        ejecutarBorradoHistorial();
+        cerrarModalEliminacionHistorial();
+    });
+
+    document.addEventListener("keydown", (evento) => {
+        if (modal.style.display === "flex" && evento.key === "Escape") {
+            cerrarModalEliminacionHistorial();
+        }
+    });
+
+    dialog.focus();
+}
+
+function abrirModalEliminacionHistorial() {
+    inicializarModalEliminacionHistorial();
+
+    const modal = document.getElementById("modal-eliminar-historial");
+    const dialog = modal.querySelector(".modal-eliminar-historial");
+
+    modal.setAttribute("aria-hidden", "false");
+    modal.style.display = "flex";
+    modal.style.position = "fixed";
+    modal.style.inset = "0";
+
+    const botonCancelar = modal.querySelector("#modal-eliminar-historial-cancelar");
+    const botonEliminar = modal.querySelector("#modal-eliminar-historial-confirmar");
+
+    botonCancelar.focus();
+    dialog.focus();
+}
+
+function cerrarModalEliminacionHistorial() {
+    const modal = document.getElementById("modal-eliminar-historial");
+
+    if (!modal) return;
+
+    modal.setAttribute("aria-hidden", "true");
+    modal.style.display = "none";
+}
+
+function ejecutarBorradoHistorial() {
+    localStorage.removeItem(HISTORY_KEY);
+    localStorage.removeItem(CURRENT_CHAT_KEY);
+
+    renderizarHistorial();
+    reiniciarChatVisual();
+}
+
+function borrarTodoElHistorial() {
+    abrirModalEliminacionHistorial();
 }
 
 function reiniciarChatVisual() {const textos = obtenerTextos();const chat = document.getElementById("chat");
@@ -2401,16 +2601,7 @@ try {
 
 }
 
-/* ========================================= // AGREGAR MENSAJE // ========================================= */
-
-function agregarMensaje(texto,tipo,loading = false,guardar = false) {const chat = document.getElementById("chat");
-
-if (!chat) {
-    console.error("No existe el chat");
-    return null;
-}
-
-const row = document.createElement("div");
+function crearElementoMensaje(texto,tipo,loading = false) {const row = document.createElement("div");
 
 row.classList.add(
     "message-row",
@@ -2453,6 +2644,22 @@ if (tipo === "bot") {
     row.appendChild(icon);
 }
 
+return row;
+
+}
+
+/* ========================================= // AGREGAR MENSAJE // ========================================= */
+
+function agregarMensaje(texto,tipo,loading = false,guardar = false) {const chat = document.getElementById("chat");
+
+if (!chat) {
+    console.error("No existe el chat");
+    return null;
+}
+
+const row = crearElementoMensaje(texto,tipo,loading);
+const bubble = row.querySelector(".message-bubble");
+
 chat.appendChild(row);
 chat.scrollTop = chat.scrollHeight;
 
@@ -2494,11 +2701,12 @@ aplicarIdioma();
 
 cargarPreferenciasAccesibilidad();
 
-restaurarUltimaConversacion();
+window.requestAnimationFrame(() => {
+    restaurarUltimaConversacion();
+    renderizarHistorial();
+});
 
 inicializarLecturaBot();
-
-renderizarHistorial();
 
 /* FIX: botones del header del chat real */
 const safeBind = (selector, callback) => {
